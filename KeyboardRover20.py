@@ -29,15 +29,6 @@ There are a couple limits to mobility with the current algorithm:
     press the directional button again for longer movements. However, it
     will stop if you let go earlier.
 
-The rover counts the number of pictures you take with the SPACE bar
-so it can give a unique  name to each new picture. There may be issues
-when you restart the rover and take new pictures since it will always
-start counting at zero. If there is already a 'roverPic0.jpg', it may
-raise an error when you try to take another picture. For now, move all
-pics out of the working directory when stopping/restarting the rover. 
-Eventually we can give each picture a random name with a hashing algorithm
-to prevent duplicate filenames.
-
 '''
 
 # must be in interval [-1,1] (vals < 1 yield slower speeds)
