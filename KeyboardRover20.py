@@ -1,94 +1,148 @@
 import time
 import pygame
 from pygame.locals import *
+
 from rover import Rover20
 
-MIN_BUTTON_LAG_SEC = 0.25
 
-# vals < 1 yield slower speed
-MAX_TREAD_SPEED = 0.5
+'''
+
+CURRENT CONTROLS:
+
+0 - Quit
+WASD - Drive/Turn
+J - Camera Up
+K - Camera Down
+SPACE - Take a Picture
+
+
+NOTES:
+
+There are a couple limits to mobility with the current algorithm:
+
+1. It cannot turn while moving forward/backward. This is due to 
+	pygame, and we should be able to incorporate better turning soon.
+2. It stops moving after about 4 or 5 wheel rotations, so you have to 
+    press the directional button again for longer movements. However, it
+    will stop if you let go earlier.
+
+The rover counts the number of pictures you take with the SPACE bar
+so it can give a unique  name to each new picture. There may be issues
+when you restart the rover and take new pictures since it will always
+start counting at zero. If there is already a 'roverPic0.jpg', it may
+raise an error when you try to take another picture. For now, move all
+pics out of the working directory when stopping/restarting the rover. 
+Eventually we can give each picture a random name with a hashing algorithm
+to prevent duplicate filenames.
+
+'''
+
+# must be in interval [-1,1] (vals < 1 yield slower speeds)
+MAX_TREAD_SPEED = 1
 
 class KeyboardRover20(Rover20):
 	def __init__(self):
-		Rover20.__init__(self)
+		Rover20.__init__(self)	
 		
 		self.quit = False
-		
-		'''
-		Trying to prevent repeated instructions that may be causing lag,
-		but lag could be from another issue entirely (possibly batteries)
-		'''
-		self.lastbuttontime = 0
-		self.lastmovement = None
-		
-		# WASD controls
-		self.movements = [pygame.K_w, pygame.K_a, pygame.K_s, pygame.K_d]
-		
+				
 		# window must be open and in focus for pygame to take input
 		self.windowSize = [640, 480]
 		
-		pygame.init()
-		pygame.display.set_caption("Keyboard Rover")
-		self.screen = pygame.display.set_mode(self.windowSize)
+		# used to only refresh the video and not the unused pixels
+		self.imageRect = (0,0,320,240)
 		
-		# Ctrl-C in Terminal (not game window) quits program for now
-		try:
-			self.keyListen()
-		except KeyboardInterrupt:
-			self.quit = True
-	
-	def keyListen(self):
-		listening = True
-		while listening:
-			for event in pygame.event.get():
-				if event.type == KEYDOWN:
-					if event.key in self.movements and self.goodCommand(event.key):
-						
-						self.lastbuttontime = time.time()
-						self.lastmovement = event.key
-						
-						if event.key == self.movements[0]:
-							self.moveForward()
-						elif event.key == self.movements[1]:
-							self.turnLeft()
-						elif event.key == self.movements[2]:
-							self.moveBackward()
-						elif event.key == self.movements[3]:
-							self.turnRight()				
-						else:
-							#ignore other keys for now
-							pass
-																		
-				if event.type == KEYUP:
-					# letting go of WASD stops movement	
-					if event.key in self.movements:
-						self.halt()
+		# Live video frames per second
+		self.fps = 24
+		
+		# stores what the camera currently sees
+		self.currentImage = None
+		
+		#count the number of pictures you take for automatic file naming
+		self.roverPicCount = 0
 				
-				if event.type == QUIT:
-					listening = False
-		self.quit = True	
+		pygame.init()
+		pygame.display.init()
+		
+		self.displayCaption = "Keyboard Rover 2.0 | PRESS 0 to QUIT"
+		pygame.display.set_caption(self.displayCaption)
+		
+		self.screen = pygame.display.set_mode(self.windowSize)
+		self.clock = pygame.time.Clock()
+		
+	# automagically called by Rover20, overriden to add functionality
+	def processVideo(self, jpegbytes, timestamp_10msec):						
+			self.currentImage = jpegbytes
+			self.parseControls()													
+			self.refreshVideo()
+			
+	
+	# live video feed										
+	def refreshVideo(self):
+		self.takePicture('tmp.jpg')
+		
+		#load image, update display
+		image = pygame.image.load('tmp.jpg').convert()		
+		self.screen.blit(image, (0, 0))
+		pygame.display.update(self.imageRect)
+		
+		#limit 24 fps
+		self.clock.tick(self.fps)       		
+			
+		
+	def parseControls(self):
+		for event in pygame.event.get():			
+			
+			if event.type == KEYDOWN:
+				# movement
+				if event.key in (pygame.K_w, pygame.K_a, pygame.K_s, pygame.K_d):
+					self.updateTreadState(event.key)			
+				# camera
+				if event.key in (pygame.K_j, pygame.K_k, pygame.K_SPACE):
+					self.updateCameraState(event.key)
+				# quit								
+				if event.key is pygame.K_0:	
+					self.quit = True
+			
+			if event.type == KEYUP:
+				# movement
+				if event.key in (pygame.K_w, pygame.K_a, pygame.K_s, pygame.K_d):
+					self.updateTreadState()
+				# camera
+				if event.key in (pygame.K_j, pygame.K_k):
+					self.updateCameraState()
 
-	def moveForward(self):
-		self.setTreads(MAX_TREAD_SPEED, MAX_TREAD_SPEED)
+	# move camera and take pictures
+	def updateCameraState(self, key=None):
+		if key is None:
+			self.moveCameraVertical(0)
+		if key is pygame.K_j:
+			self.moveCameraVertical(1)
+		if key is pygame.K_k:
+			self.moveCameraVertical(-1)
+		if key is pygame.K_SPACE:
+			self.roverPicCount += 1
+			self.takePicture('roverPic'+str(self.roverPicCount)+'.jpg')
 	
-	def moveBackward(self):
-		self.setTreads(-MAX_TREAD_SPEED, -MAX_TREAD_SPEED)
-		
-	def turnRight(self):
-		self.setTreads(MAX_TREAD_SPEED,0)
-		
-	def turnLeft(self):
-		self.setTreads(0,MAX_TREAD_SPEED)
 	
-	def halt(self):
-		self.setTreads(0,0)
+	# save jpegbytes to file
+	def takePicture(self, fname):
+		fd = open(fname, 'w')
+		fd.write(self.currentImage)
+		fd.close()
 	
-	'''
-	goodCommand() needs better function name	
-	prevents 'button jump'
-	'''
-	def goodCommand(self, key):
-		return ((time.time() - self.lastbuttontime) > MIN_BUTTON_LAG_SEC) and (key is not self.lastmovement)
+	# move rover								
+	def updateTreadState(self, key=None):
+		if key is None:
+			self.setTreads(0,0)
+		if key is pygame.K_w:
+			self.setTreads(MAX_TREAD_SPEED, MAX_TREAD_SPEED)
+		if key is pygame.K_a:
+			self.setTreads(-MAX_TREAD_SPEED, MAX_TREAD_SPEED)
+		if key is pygame.K_s:
+			self.setTreads(-MAX_TREAD_SPEED, -MAX_TREAD_SPEED)
+		if key is pygame.K_d:
+			self.setTreads(MAX_TREAD_SPEED, -MAX_TREAD_SPEED)
 	
 def main():	
 	rover = KeyboardRover20()
@@ -96,8 +150,9 @@ def main():
 	while not rover.quit:
 		pass
 	
-	rover.close()
 	pygame.quit()
+	rover.close()
+	
 
 			
 if __name__ == '__main__':
