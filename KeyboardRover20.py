@@ -1,4 +1,7 @@
-import time
+from string import ascii_lowercase, ascii_uppercase
+from datetime import date
+from random import choice
+
 import pygame
 from pygame.locals import *
 
@@ -73,9 +76,19 @@ class KeyboardRover20(Rover20):
 	# automagically called by Rover20, overriden to add functionality
 	def processVideo(self, jpegbytes, timestamp_10msec):						
 			self.currentImage = jpegbytes
-			self.parseControls()													
-			self.refreshVideo()
+			self.parseControls()
 			
+			#prevents an inconsequential error on quit
+			if not self.quit:													
+				self.refreshVideo()
+			
+	# uses today's date plus a random string of letters
+	def newPictureName(self):
+		todaysDate = str(date.today())
+		uniqueKey = ''.join(choice(ascii_lowercase + ascii_uppercase) \
+							for _ in range(7))
+		return todaysDate+'_'+uniqueKey+'.jpg'
+		
 	
 	# live video feed										
 	def refreshVideo(self):
@@ -122,7 +135,7 @@ class KeyboardRover20(Rover20):
 			self.moveCameraVertical(-1)
 		if key is pygame.K_SPACE:
 			self.roverPicCount += 1
-			self.takePicture('roverPic'+str(self.roverPicCount)+'.jpg')
+			self.takePicture(self.newPictureName())
 	
 	
 	# save jpegbytes to file
