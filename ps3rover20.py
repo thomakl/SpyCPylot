@@ -57,7 +57,7 @@ class PS3Rover(Rover20):
         # Set up basics
         Rover20.__init__(self)
         self.wname = 'Rover 2.0: Hit ESC to quit'
-        self.quit = False
+        self.quit = Fsetalse
 
         # Set up controller using PyGame
         pygame.display.init()
