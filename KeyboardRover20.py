@@ -1,15 +1,4 @@
-from string import ascii_lowercase, ascii_uppercase
-from datetime import date
-from random import choice
-
-import pygame
-from pygame.locals import *
-
-from rover import Rover20
-
-
 '''
-
 CURRENT CONTROLS:
 
 0 - Quit
@@ -30,6 +19,15 @@ There are a couple limits to mobility with the current algorithm:
     will stop if you let go earlier.
 
 '''
+from datetime import date
+from random import choice
+from string import ascii_lowercase, ascii_uppercase
+
+import pygame
+from pygame.locals import *
+
+from rover import Rover20
+
 
 # must be in interval [-1,1] (vals < 1 yield slower speeds)
 MAX_TREAD_SPEED = 1
@@ -51,9 +49,6 @@ class KeyboardRover20(Rover20):
 		
 		# stores what the camera currently sees
 		self.currentImage = None
-		
-		#count the number of pictures you take for automatic file naming
-		self.roverPicCount = 0
 				
 		pygame.init()
 		pygame.display.init()
@@ -63,6 +58,7 @@ class KeyboardRover20(Rover20):
 		
 		self.screen = pygame.display.set_mode(self.windowSize)
 		self.clock = pygame.time.Clock()
+	
 		
 	# automagically called by Rover20, overriden to add functionality
 	def processVideo(self, jpegbytes, timestamp_10msec):						
@@ -72,28 +68,8 @@ class KeyboardRover20(Rover20):
 			#prevents an inconsequential error on quit
 			if not self.quit:													
 				self.refreshVideo()
-			
-	# uses today's date plus a random string of letters
-	def newPictureName(self):
-		todaysDate = str(date.today())
-		uniqueKey = ''.join(choice(ascii_lowercase + ascii_uppercase) \
-							for _ in range(7))
-		return todaysDate+'_'+uniqueKey+'.jpg'
-		
 	
-	# live video feed										
-	def refreshVideo(self):
-		self.takePicture('tmp.jpg')
-		
-		#load image, update display
-		image = pygame.image.load('tmp.jpg').convert()		
-		self.screen.blit(image, (0, 0))
-		pygame.display.update(self.imageRect)
-		
-		#limit 24 fps
-		self.clock.tick(self.fps)       		
-			
-		
+	
 	def parseControls(self):
 		for event in pygame.event.get():			
 			
@@ -115,25 +91,20 @@ class KeyboardRover20(Rover20):
 				# camera
 				if event.key in (pygame.K_j, pygame.K_k):
 					self.updateCameraState()
-
-	# move camera and take pictures
-	def updateCameraState(self, key=None):
-		if key is None:
-			self.moveCameraVertical(0)
-		if key is pygame.K_j:
-			self.moveCameraVertical(1)
-		if key is pygame.K_k:
-			self.moveCameraVertical(-1)
-		if key is pygame.K_SPACE:
-			self.roverPicCount += 1
-			self.takePicture(self.newPictureName())
 	
 	
-	# save jpegbytes to file
-	def takePicture(self, fname):
-		fd = open(fname, 'w')
-		fd.write(self.currentImage)
-		fd.close()
+	# live video feed										
+	def refreshVideo(self):
+		self.takePicture('tmp.jpg')
+		
+		#load image, update display
+		image = pygame.image.load('tmp.jpg').convert()		
+		self.screen.blit(image, (0, 0))
+		pygame.display.update(self.imageRect)
+		
+		#limit fps
+		self.clock.tick(self.fps) 
+	
 	
 	# move rover								
 	def updateTreadState(self, key=None):
@@ -148,6 +119,35 @@ class KeyboardRover20(Rover20):
 		if key is pygame.K_d:
 			self.setTreads(MAX_TREAD_SPEED, -MAX_TREAD_SPEED)
 	
+	
+	# move camera and take pictures
+	def updateCameraState(self, key=None):
+		if key is None:
+			self.moveCameraVertical(0)
+		if key is pygame.K_j:
+			self.moveCameraVertical(1)
+		if key is pygame.K_k:
+			self.moveCameraVertical(-1)
+		if key is pygame.K_SPACE:
+			self.takePicture(self.newPictureName())
+	
+	
+	# save jpegbytes to file
+	def takePicture(self, fname):
+		fd = open(fname, 'w')
+		fd.write(self.currentImage)
+		fd.close()
+		
+				
+	# returns today's date plus a random string of letters
+	def newPictureName(self):
+		todaysDate = str(date.today())
+		uniqueKey = ''.join(choice(ascii_lowercase + ascii_uppercase) \
+							for _ in range(7))
+		return todaysDate+'_'+uniqueKey+'.jpg'
+		
+		
+			
 def main():	
 	rover = KeyboardRover20()
 	
