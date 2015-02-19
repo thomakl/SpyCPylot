@@ -39,7 +39,7 @@ class KeyboardRover20(Rover20):
 		self.stealthIsOn = False
 		
 		# WASD controls
-		self.directionControls = {pygame.K_w : False, pygame.K_a : False, pygame.K_s: False,  pygame.K_d: False}
+		self.directionControls = {K_w: False, K_a: False, K_s: False,  K_d: False}
 				
 		# window must be open and in focus for pygame to take input
 		self.windowSize = [640, 480]
@@ -68,9 +68,10 @@ class KeyboardRover20(Rover20):
 			
 			if not self.quit:
 				self.currentImage = jpegbytes
+				self.refreshVideo()
 				self.parseControls()
 				self.updateTreadState()																		
-				self.refreshVideo()
+				
 
 		
 	def parseControls(self):
@@ -81,7 +82,7 @@ class KeyboardRover20(Rover20):
 			
 			elif event.type == KEYDOWN:								
 				# camera
-				if event.key in (pygame.K_j, pygame.K_k, pygame.K_SPACE):
+				if event.key in (K_j, K_k, K_SPACE):
 					self.updateCameraState(event.key)				
 				
 				# drive
@@ -89,28 +90,27 @@ class KeyboardRover20(Rover20):
 					self.directionControls[event.key] = True				
 				
 				# infrared
-				elif event.key is pygame.K_u:
+				elif event.key is K_u:
+					self.stealthIsOn = not self.stealthIsOn
 					if self.stealthIsOn:
+						self.turnStealthOn()						
+					else:
 						self.turnStealthOff()
-						self.stealthIsOn = False
-					else:
-						self.turnStealthOn()
-						self.stealthIsOn = True				
+										
 				# lights
-				elif event.key is pygame.K_i:
+				elif event.key is K_i:
+					self.lightsAreOn = not self.lightsAreOn
 					if self.lightsAreOn:
-						self.turnLightsOff()
-						self.lightsAreOn = False
+						self.turnLightsOn()					
 					else:
-						self.turnLightsOn()
-						self.lightsAreOn = True
+						self.turnLightsOff()
 								
 			elif event.type == KEYUP:
 				# drive
 				if event.key in self.directionControls.keys():
 					self.directionControls[event.key] = False
 				# camera
-				elif event.key in (pygame.K_j, pygame.K_k):
+				elif event.key in (K_j, K_k):
 					self.updateCameraState()
 				
 			
@@ -132,17 +132,17 @@ class KeyboardRover20(Rover20):
 		left, right = 0, 0
 		
 		# forward
-		if self.directionControls[pygame.K_w]:
+		if self.directionControls[K_w]:
 			left, right = MAX_TREAD_SPEED, MAX_TREAD_SPEED		
 		# backward
-		elif self.directionControls[pygame.K_s]:
+		elif self.directionControls[K_s]:
 			left, right = -MAX_TREAD_SPEED, -MAX_TREAD_SPEED
 		# left	
-		elif self.directionControls[pygame.K_a]:
+		elif self.directionControls[K_a]:
 			right = MAX_TREAD_SPEED		
 			left = -right
 		# right
-		elif self.directionControls[pygame.K_d]:
+		elif self.directionControls[K_d]:
 			left = MAX_TREAD_SPEED
 			right = -left
 		
@@ -176,7 +176,7 @@ class KeyboardRover20(Rover20):
 	def newPictureName(self):
 		todaysDate = str(date.today())
 		uniqueKey = ''.join(choice(ascii_lowercase + ascii_uppercase) \
-							for _ in range(7))
+							for _ in range(4))
 		return todaysDate+'_'+uniqueKey+'.jpg'
 		
 		
