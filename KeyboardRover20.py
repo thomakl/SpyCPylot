@@ -13,8 +13,7 @@ I - Toggle Lights
 
 NOTES:
 
-The rover cannot turn while moving forward/backward. This is due to 
-pygame, and we should be able to incorporate better turning soon.
+The rover cannot turn while moving forward/backward.
 
 '''
 from datetime import date
