@@ -148,6 +148,8 @@ class KeyboardRover20(Rover20):
 		# take picture
 		elif key is pygame.K_SPACE:
 			self.takePicture(self.newPictureName())
+		else:
+			pass
 
 
 	# save jpegbytes to file
