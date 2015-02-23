@@ -44,10 +44,8 @@ class roverShell(Rover20):
 	def processVideo(self, jpegbytes, timestamp_10msec):
 		
 		# safely write image
-		lock.acquire()	
-		
-		self.currentImage = jpegbytes
-		
+		lock.acquire()		
+		self.currentImage = jpegbytes		
 		lock.release()
 		
 		# update movement
@@ -122,6 +120,7 @@ class roverBrain():
 		currentImage.seek(0)
 		image = pygame.image.load(currentImage, 'tmp.jpg').convert()
 		currentImage.close()
+		
 		# render image		
 		self.screen.blit(image, (160, 120))
 		pygame.display.update(self.imageRect)
@@ -192,9 +191,11 @@ class roverBrain():
 		else:
 			pass
 	
+	
 	def takePicture(self):
 		with open(self.newPictureName(), 'w') as pic:
 			pic.write(self.rover.currentImage)			
+	
 			
 	# today's date plus a random string of letters
 	def newPictureName(self):
