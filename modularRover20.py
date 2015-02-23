@@ -21,7 +21,6 @@ from time import sleep
 from datetime import date
 from random import choice
 from threading import Lock
-from shutil import copyfile
 from string import ascii_lowercase, ascii_uppercase
 import StringIO
 from rover import Rover20
