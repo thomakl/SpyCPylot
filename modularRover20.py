@@ -3,11 +3,6 @@ This version of the rover separates the rover (roverShell) from
 the pygame controller (roverBrain). With this design, we can create 
 new controllers without needing to redesign the basic rover functions.
 
-It is crucial that we figure out how to read/write the video from RAM
-instead of from the hard drive. Using secondary memory is significantly 
-slower than using primary memory, and this speed difference will become 
-apparent when we begin image processing and object detection.
-
 CONTROLS:
 
 WASD - Drive
@@ -28,7 +23,7 @@ from random import choice
 from threading import Lock
 from shutil import copyfile
 from string import ascii_lowercase, ascii_uppercase
-
+import StringIO
 from rover import Rover20
 '''
  The Lock() is used to prevent two processes from trying to access 
@@ -43,15 +38,16 @@ class roverShell(Rover20):
 		self.quit = False
 		self.peripherals = {'lights': False, 'stealth': False, 'camera': 0}
 		self.treads = [0,0]
-
+		self.currentImage = None
 		
 	# called by Rover20, acts as a main loop
 	def processVideo(self, jpegbytes, timestamp_10msec):
 		
 		# safely write image
 		lock.acquire()	
-		with open('tmp.jpg', 'w') as fd:
-			fd.write(jpegbytes)				
+		
+		self.currentImage = jpegbytes
+		
 		lock.release()
 		
 		# update movement
@@ -92,7 +88,7 @@ class roverBrain():
 		# [x, y, width, height]
 		self.imageRect = (160,120,320,240)
 
-		self.fps = 48
+		self.fps = 60
 		
 		self.displayCaption = "Keyboard Rover 2.0"
 
@@ -107,11 +103,11 @@ class roverBrain():
 	
 			
 	def run(self):
-		sleep(1.1) # allows roverShell to first write 'tmp.jpg'
+		sleep(2) # allows roverShell to first write 'jpegbytes'
 		
 		while not self.quit:			
-			self.refreshVideo()
 			self.parseControls()
+			self.refreshVideo()
 		
 		self.rover.quit = True
 		pygame.quit()
@@ -119,10 +115,13 @@ class roverBrain():
 	
 	def refreshVideo(self):	
 		# safely load image
-		lock.acquire()
-		image = pygame.image.load("tmp.jpg").convert()		
+		lock.acquire()		
+		currentImage = StringIO.StringIO(self.rover.currentImage)	
 		lock.release()			
 		
+		currentImage.seek(0)
+		image = pygame.image.load(currentImage, 'tmp.jpg').convert()
+		currentImage.close()
 		# render image		
 		self.screen.blit(image, (160, 120))
 		pygame.display.update(self.imageRect)
@@ -188,11 +187,14 @@ class roverBrain():
 			not self.rover.peripherals['lights']
 		elif key is K_SPACE:
 			lock.acquire()
-			copyfile('tmp.jpg', self.newPictureName())
+			self.takePicture()
 			lock.release()
 		else:
 			pass
-				
+	
+	def takePicture(self):
+		with open(self.newPictureName(), 'w') as pic:
+			pic.write(self.rover.currentImage)			
 			
 	# today's date plus a random string of letters
 	def newPictureName(self):

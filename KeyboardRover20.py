@@ -14,6 +14,7 @@ I - Toggle Lights
 from datetime import date
 from random import choice
 from string import ascii_lowercase, ascii_uppercase
+import StringIO
 
 import pygame
 from pygame.locals import *
@@ -59,7 +60,7 @@ class KeyboardRover20(Rover20):
 	# automagically called by Rover20, acts as main loop
 	def processVideo(self, jpegbytes, timestamp_10msec):
 			if not self.quit:
-				self.currentImage = jpegbytes
+				self.currentImage = StringIO.StringIO(jpegbytes)
 				self.refreshVideo()
 				self.parseControls()
 				self.setTreads(self.treads[0], self.treads[1])
@@ -111,10 +112,11 @@ class KeyboardRover20(Rover20):
 
 	# live video feed
 	def refreshVideo(self):
-		self.takePicture('tmp.jpg')
+		
 
 		#load image, update display
-		image = pygame.image.load('tmp.jpg').convert()
+		image = pygame.image.load(self.currentImage).convert()
+		self.currentImage.close()
 		self.screen.blit(image, (160, 120))
 		pygame.display.update(self.imageRect)
 
@@ -152,7 +154,9 @@ class KeyboardRover20(Rover20):
 			self.moveCameraVertical(-1)
 		# take picture
 		elif key is pygame.K_SPACE:
-			self.takePicture(self.newPictureName())
+			# FIX THIS
+			pass
+			#self.takePicture(self.newPictureName())
 		else:
 			pass
 
@@ -160,7 +164,7 @@ class KeyboardRover20(Rover20):
 	# save jpegbytes to file
 	def takePicture(self, fname):
 		with open(fname, 'w') as fd:
-			fd.write(self.currentImage)
+			fd.write(self.currentImage.getvalue())
 
 
 	# today's date plus a random string of letters
