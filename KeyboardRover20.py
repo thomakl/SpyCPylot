@@ -21,6 +21,7 @@ from pygame.locals import *
 from rover import Rover20
 
 
+
 class KeyboardRover20(Rover20):
 	def __init__(self):
 		Rover20.__init__(self)
@@ -55,16 +56,15 @@ class KeyboardRover20(Rover20):
 		self.clock = pygame.time.Clock()
 
 
-	# automagically called by Rover20, overriden to add functionality
+	# automagically called by Rover20, acts as main loop
 	def processVideo(self, jpegbytes, timestamp_10msec):
-
 			if not self.quit:
 				self.currentImage = jpegbytes
 				self.refreshVideo()
 				self.parseControls()
 				self.setTreads(self.treads[0], self.treads[1])
-
-
+			
+				
 	def parseControls(self):
 		for event in pygame.event.get():
 
@@ -103,6 +103,10 @@ class KeyboardRover20(Rover20):
 				# camera
 				elif event.key in (K_j, K_k):
 					self.updateCameraState()
+				else:
+					pass
+			else:
+				pass
 
 
 	# live video feed
@@ -134,6 +138,7 @@ class KeyboardRover20(Rover20):
 		else:
 			pass
 
+
 	# move camera and take pictures
 	def updateCameraState(self, key=None):
 		# stationary
@@ -154,12 +159,11 @@ class KeyboardRover20(Rover20):
 
 	# save jpegbytes to file
 	def takePicture(self, fname):
-		fd = open(fname, 'w')
-		fd.write(self.currentImage)
-		fd.close()
+		with open(fname, 'w') as fd:
+			fd.write(self.currentImage)
 
 
-	# return today's date plus a random string of letters
+	# today's date plus a random string of letters
 	def newPictureName(self):
 		todaysDate = str(date.today())
 		uniqueKey = ''.join(choice(ascii_lowercase + ascii_uppercase) \
@@ -179,7 +183,5 @@ def main():
 
 
 if __name__ == '__main__':
-	try:
-		main()
-	except KeyboardInterrupt:
-		pass
+	main()
+
