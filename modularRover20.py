@@ -32,7 +32,7 @@ class cv2Thread(threading.Thread):
 		self.rover = rover
 		self.image = None
 		self.lock = threading.Lock()
-		self.fast = cv2.FastFeatureDetector()
+		self.fast = cv2.FastFeatureDetector(threshold=75)
 		self.quit = False
 		
 	def run(self):
@@ -49,7 +49,7 @@ class cv2Thread(threading.Thread):
 	def Image(self):
 		img = self.decodeImage()
 		keypoints = self.fast.detect(img,None)
-		img = cv2.drawKeypoints(img, keypoints, color=(255,0,0))	
+		img = cv2.drawKeypoints(img, keypoints, color=(0,255,0))	
 		return cv2.imencode('.jpg', img)[1].tostring()
 
 	
