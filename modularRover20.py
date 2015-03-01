@@ -16,19 +16,42 @@ I - Toggle Lights
 '''
 import pygame
 from pygame.locals import *
-
 from time import sleep
 from datetime import date
 from random import choice
-from threading import Lock
 from string import ascii_lowercase, ascii_uppercase
+import threading 
 import StringIO
+import cv2
+import numpy as np
 from rover import Rover20
-'''
- The Lock() is used to prevent two processes from trying to access 
- a resource at the same time, which would cause errors.
-'''
-lock = Lock()
+
+class cv2Thread(threading.Thread):
+	def __init__(self, rover):
+		threading.Thread.__init__(self)
+		self.rover = rover
+		self.image = None
+		self.lock = threading.Lock()
+		self.fast = cv2.FastFeatureDetector()
+		self.quit = False
+		
+	def run(self):
+		while not self.quit:
+			pass
+				
+	def decodeImage(self, cv2_img_flag=0):
+		self.rover.lock.acquire()
+		img = self.rover.currentImage
+		self.rover.lock.release()
+		img = np.asarray(bytearray(img), dtype=np.uint8)
+		return cv2.imdecode(img, cv2_img_flag)
+
+	def Image(self):
+		img = self.decodeImage()
+		keypoints = self.fast.detect(img,None)
+		img = cv2.drawKeypoints(img, keypoints, color=(255,0,0))	
+		return cv2.imencode('.jpg', img)[1].tostring()
+
 	
 class roverShell(Rover20):
 	def __init__(self):
@@ -38,14 +61,15 @@ class roverShell(Rover20):
 		self.peripherals = {'lights': False, 'stealth': False, 'camera': 0}
 		self.treads = [0,0]
 		self.currentImage = None
-		
+		self.lock = threading.Lock()
+	
 	# called by Rover20, acts as a main loop
 	def processVideo(self, jpegbytes, timestamp_10msec):
 		
 		# safely write image
-		lock.acquire()		
+		self.lock.acquire()		
 		self.currentImage = jpegbytes		
-		lock.release()
+		self.lock.release()
 		
 		# update movement
 		self.setTreads(self.treads[0], self.treads[1])
@@ -77,6 +101,7 @@ class roverBrain():
 	def __init__(self):
 		
 		self.rover = roverShell()
+		self.cv2thread = cv2Thread(self.rover)
 		self.quit = False
 		
 		# [width, height]
@@ -85,7 +110,7 @@ class roverBrain():
 		# [x, y, width, height]
 		self.imageRect = (160,120,320,240)
 
-		self.fps = 60
+		self.fps = 48
 		
 		self.displayCaption = "Keyboard Rover 2.0"
 
@@ -100,27 +125,33 @@ class roverBrain():
 	
 			
 	def run(self):
-		sleep(2) # allows roverShell to first write 'jpegbytes'
+		sleep(5) # allows roverShell to first write 'jpegbytes'
 		
 		while not self.quit:			
 			self.parseControls()
 			self.refreshVideo()
 		
+		self.cv2thread.quit = True
 		self.rover.quit = True
 		pygame.quit()
 	
 	
 	def refreshVideo(self):	
-		# safely load image
-		lock.acquire()		
-		currentImage = StringIO.StringIO(self.rover.currentImage)	
-		lock.release()			
+		# get image from cv2thread
+		image = self.cv2thread.Image()
+				
+		if image is None:					
+			self.rover.lock.acquire()
+			image = self.rover.currentImage
+			self.rover.lock.release()
+			print "rover image used"		
 		
-		currentImage.seek(0)
-		image = pygame.image.load(currentImage, 'tmp.jpg').convert()
-		currentImage.close()
+		image = StringIO.StringIO(image)
+		image.seek(0)
+		# give image to pygame
+		image = pygame.image.load(image, 'tmp.jpg').convert()
 		
-		# render image		
+		# render image to screen		
 		self.screen.blit(image, (160, 120))
 		pygame.display.update(self.imageRect)
 		self.clock.tick(self.fps)
@@ -184,17 +215,17 @@ class roverBrain():
 			self.rover.peripherals['lights'] = \
 			not self.rover.peripherals['lights']
 		elif key is K_SPACE:
-			lock.acquire()
 			self.takePicture()
-			lock.release()
+
 		else:
 			pass
 	
 	
 	def takePicture(self):
 		with open(self.newPictureName(), 'w') as pic:
+			self.rover.lock.acquire()
 			pic.write(self.rover.currentImage)			
-	
+			self.rover.lock.release()
 			
 	# today's date plus a random string of letters
 	def newPictureName(self):
