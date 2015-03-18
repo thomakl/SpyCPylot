@@ -43,7 +43,7 @@ class roverShell(Rover20):
 		self.treads = [0,0]
 		self.currentImage = None
 		self.peripherals = {'lights': False, 'stealth': False, \
-		'detect': True, 'camera': 0}
+				    'detect': True, 'camera': 0}
 		
 	# main loop		
 	def processVideo(self, jpegbytes, timestamp_10msec):					
