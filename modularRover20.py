@@ -43,28 +43,22 @@ class roverShell(Rover20):
 		self.treads = [0,0]
 		self.currentImage = None
 		self.peripherals = {'lights': False, 'stealth': False, \
-							'detect': True, 'camera': 0}
+		'detect': True, 'camera': 0}
 		
-			
-	# called by Rover20, acts as a main loop
-	def processVideo(self, jpegbytes, timestamp_10msec):
-		# update video						
+	# main loop		
+	def processVideo(self, jpegbytes, timestamp_10msec):					
 		self.lock.acquire()		
 		if self.peripherals['detect']:		
 			self.currentImage = self.processImage(jpegbytes)
 		else:
 			self.currentImage = jpegbytes				
 		self.lock.release()		
-		
-		# update movement
 		self.setTreads(self.treads[0], self.treads[1])		
-		
-		# update lights/infrared/camera	
 		self.setPeripherals()						
 		if self.quit:
 			self.close()
 
-
+	# openCV operations
 	def processImage(self, jpegbytes):
 		img = np.asarray(bytearray(jpegbytes), dtype=np.uint8)
 		img = cv2.imdecode(img, 0)
@@ -73,7 +67,7 @@ class roverShell(Rover20):
 		img = cv2.drawKeypoints(img, keypoints, color=(0,255,0))			
 		return cv2.imencode('.jpg', img)[1].tostring()
 
-
+	# camera features
 	def setPeripherals(self):	
 		if self.peripherals['lights']:
 			self.turnLightsOn()
@@ -118,14 +112,12 @@ class roverBrain():
 	
 	
 	def refreshVideo(self):	
-		# prepare image
 		self.rover.lock.acquire()
 		image = self.rover.currentImage
 		self.rover.lock.release()							
 		image = cStringIO.StringIO(image)		
-		image = pygame.image.load(image, 'tmp.jpg').convert()
 		
-		# render image		
+		image = pygame.image.load(image, 'tmp.jpg').convert()		
 		self.screen.blit(image, (160, 120))
 		pygame.display.update(self.imageRect)
 		self.clock.tick(self.fps)
@@ -135,22 +127,16 @@ class roverBrain():
 		for event in pygame.event.get():
 			if event.type == QUIT:
 				self.quit = True
-
 			elif event.type == KEYDOWN:
-				# camera
 				if event.key in (K_j, K_k, K_SPACE, K_u, K_i, K_o):
 					self.updatePeripherals(event.key)
-				# drive
 				elif event.key in (K_w, K_a, K_s, K_d):
 					self.updateTreads(event.key)
 				else:
-					pass
-					
+					pass					
 			elif event.type == KEYUP:
-				# drive
 				if event.key in (K_w, K_a, K_s, K_d):
 					self.updateTreads()
-				# camera
 				elif event.key in (K_j, K_k):
 					self.updatePeripherals()
 				else:
