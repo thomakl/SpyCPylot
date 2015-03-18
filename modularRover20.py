@@ -44,6 +44,7 @@ class roverShell(Rover20):
 		self.currentImage = None
 		self.peripherals = {'lights': False, 'stealth': False, \
 				    'detect': True, 'camera': 0}
+
 		
 	# main loop		
 	def processVideo(self, jpegbytes, timestamp_10msec):					
@@ -58,6 +59,7 @@ class roverShell(Rover20):
 		if self.quit:
 			self.close()
 
+
 	# openCV operations
 	def processImage(self, jpegbytes):
 		img = np.asarray(bytearray(jpegbytes), dtype=np.uint8)
@@ -66,6 +68,7 @@ class roverShell(Rover20):
 		keypoints, des = self.orb.compute(img, keypoints)		
 		img = cv2.drawKeypoints(img, keypoints, color=(0,255,0))			
 		return cv2.imencode('.jpg', img)[1].tostring()
+
 
 	# camera features
 	def setPeripherals(self):	
