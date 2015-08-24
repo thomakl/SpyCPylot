@@ -51,7 +51,7 @@ class Rover:
                 
         # Extract Blowfish key from camera ID in reply
         cameraID = reply[25:37].decode('utf-8')
-        key = TARGET_ID + ':' + cameraID + '-save-private:' + TARGET_PASSWORD
+        key = TARGET_ID + ':' + cameraID + '-teabottle-470ml:' + TARGET_PASSWORD
         
         # Extract Blowfish inputs from rest of reply
         L1 = bytes_to_int(reply, 66)
