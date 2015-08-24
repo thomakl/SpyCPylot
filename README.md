@@ -1,6 +1,6 @@
-RoverPylot
+SpyCPylot
 ==========
 
-Pilot the Brookstone Rover 2.0 and Rover Revolution from Python
+Pilot the Spy-C tank from Logicom from Python (forked from RoverPylot)
 
 See http://home.wlu.edu/~levys/software/roverpylot/ for details.
